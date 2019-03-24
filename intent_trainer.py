@@ -84,6 +84,8 @@ class IntentTrainer():
         char2idx["<unk>"] = 1
         char2idx["<pad>"] = 0
 
+        labels2idx = dict((label, number) for number, label in enumerate(labels))
+
         self.save_data(X[:300], labels, vocab_map, char2idx)
 
         x_train, x_val, x_test = numpy.split(X, [int(len(X)*0.75), int(len(X)*0.95)])
@@ -91,10 +93,10 @@ class IntentTrainer():
         batch_size = 64
 
         preprocessor = IndexTransformer()
-        preprocessor.fit_with_char(vocab_map, labels, char2idx)
+        preprocessor.fit(vocab_map, labels2idx, char2idx)
 
-        train_seq = TrainSequence(x_train, y_train, batch_size, preprocessor.transform_with_char)
-        val_seq = TrainSequence(x_val, y_val, batch_size, preprocessor.transform_with_char)
+        train_seq = TrainSequence(x_train, y_train, batch_size, preprocessor.transform)
+        val_seq = TrainSequence(x_val, y_val, batch_size, preprocessor.transform)
 
         model = BiLSTMCRF(labels, n_words, n_chars)
         model.build()

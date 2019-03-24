@@ -34,21 +34,19 @@ class BiLSTMCRF():
 
         x = concatenate([emb_word, char_enc])
         x = SpatialDropout1D(0.3)(x)
-        model = Bidirectional(LSTM(units=256, return_sequences=True,
+        bi_lstm = Bidirectional(LSTM(units=256, return_sequences=True,
                                recurrent_dropout=0.6))(x)
 
 
-        out = TimeDistributed(Dense(256, activation="softmax"))(model)  # softmax output layer
-        
+        fully_conn = Dense(self.n_labels, activation="relu")(bi_lstm)  # softmax output layer
+
         crf = CRF(self.n_labels, sparse_target=False)
         loss = crf.loss_function
-        pred = crf(out)
+        pred = crf(fully_conn)
 
         self.model = Model(inputs=[word_in, char_in], outputs=pred)
         self.loss = loss
         self.accuracy = crf.accuracy
-
-        return model
 
     def compile(self):
         self.model.compile(loss=self.loss, optimizer='rmsprop', metrics=[self.accuracy])
@@ -56,7 +54,7 @@ class BiLSTMCRF():
     def train(self, train_seq, test_seq):
         self.model.fit_generator(
             generator=train_seq,
-            epochs=6,
+            epochs=10,
             verbose=1,
             shuffle=True,
             validation_data=test_seq,
