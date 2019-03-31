@@ -38,7 +38,7 @@ class BiLSTMCRF():
                                recurrent_dropout=0.6))(x)
 
 
-        fully_conn = Dense(self.n_labels, activation="relu")(bi_lstm)  # softmax output layer
+        fully_conn = Timedistributed(Dense(self.n_labels, activation="relu"))(bi_lstm)  # softmax output layer
 
         crf = CRF(self.n_labels, sparse_target=False)
         loss = crf.loss_function
