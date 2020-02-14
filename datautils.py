@@ -15,7 +15,7 @@ class Dataset():
             data = json.load(f)
 
         self.labels = data['labels']
-        self.training_data = data['training_data'][0:50]
+        self.training_data = data['training_data']
 
     def get_data(self):
         return self.labels, self.training_data 
@@ -41,18 +41,23 @@ class Dataset():
 class Vocabulary():
     def __init__(self):
         self.vocab = set()
+        self.vocab.add('<pad>')
         self.vocab.add('<unk>')
         self.map = None
+        self._create_map()
 
     def add(self, word):
         self.vocab.add(word)
+        self._create_map()
 
-    def build_vocabulary(self, X):
+    def build_vocab(self, X):
         for command in X:
             for word in command:
-                self.add(word)
+                self.vocab.add(word)
 
-    def create_map(self):
+        self._create_map()
+
+    def _create_map(self):
         l = sorted(list(self.vocab))
         self.map = {word: number for number, word in enumerate(l)}
 
@@ -68,9 +73,11 @@ class Vocabulary():
     def __getitem__(self, word):
         return self.get(word)
 
+    def __contains__(self, word):
+        return word in self.vocab
+
 
 class DataSequence(Sequence):
-
     def __init__(self, x, y, batch_size=1, preprocess=None):
         self.x = x
         self.y = y

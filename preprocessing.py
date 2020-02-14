@@ -32,7 +32,6 @@ from sklearn.externals import joblib
 from keras.utils.np_utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
 
-
 class IndexTransformer(BaseEstimator, TransformerMixin):
     """Convert a collection of raw documents to a document id matrix.  
     """
@@ -68,7 +67,7 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
         """
 
         # Convert every word in each sentence into an integer id
-        word_ids = [[self.get_word_id(w) for w in doc] for doc in X]
+        word_ids = [[self._word_vocab[w] for w in doc] for doc in X]
         n_words = len(self._word_vocab)
 
         # Pad all the sequences to equal length.
@@ -77,7 +76,7 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
         word_ids = pad_sequences(sequences=word_ids, padding="post", value=self._word_vocab['<pad>'])
 
         # Convert every character of every word in each sentence into an integer id
-        char_ids = [[[self.get_char_id(ch) for ch in w] for w in doc] for doc in X]
+        char_ids = [[[self._char_vocab[ch] for ch in w] for w in doc] for doc in X]
         # Each word gets its own array so we need to pad those arrays so that 
         # each word sequence is of the same length
         char_ids = pad_nested_sequences(char_ids)
@@ -93,18 +92,6 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
             # One-hot encode all the sequences
             y = to_categorical(y, self.label_size).astype(int)
             return features, y
-
-    def get_word_id(self, word):
-        if word in self._word_vocab:
-            return self._word_vocab[word]
-        # If the word is not in the vocabulary then we return the unknown word id
-        return self._word_vocab['<unk>']
-
-    def get_char_id(self, char):
-        if char in self._char_vocab:
-            return self._char_vocab[char]
-        # If the character is not in the vocabulary then we return the unknown char id
-        return self._char_vocab['<unk>']
 
     def fit_transform(self, X, y=None, **params):
         """Learn vocabulary and return document id matrix.

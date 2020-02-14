@@ -1,10 +1,12 @@
-import numpy
+from os import path
 
+import numpy
 from keras.layers import Dense, CuDNNLSTM, LSTM, concatenate, SpatialDropout1D, Bidirectional, Embedding, Input, Dropout, TimeDistributed, GlobalAveragePooling1D
 from keras.layers.merge import Concatenate
 from keras.models import Model
 from layers import CRF
 from keras.callbacks import ModelCheckpoint
+
 
 
 class BiLSTMCRF():
@@ -60,6 +62,7 @@ class BiLSTMCRF():
         self.model.load_weights(weights_path)
 
     def save_weights(self, name):
+        weights_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "weights", '%s.hdf5' % name)
         self.model.save_weights(name)
 
     def predict(self, input):
