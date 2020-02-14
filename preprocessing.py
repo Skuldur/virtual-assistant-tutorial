@@ -32,32 +32,11 @@ from sklearn.externals import joblib
 from keras.utils.np_utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
 
-#from anago.utils import Vocabulary
 
 class IndexTransformer(BaseEstimator, TransformerMixin):
-    """Convert a collection of raw documents to a document id matrix.
-
-    Attributes:
-        _use_char: boolean. Whether to use char feature.
-        _num_norm: boolean. Whether to normalize text.
-        _word_vocab: dict. A mapping of words to feature indices.
-        _char_vocab: dict. A mapping of chars to feature indices.
-        _label_vocab: dict. A mapping of labels to feature indices.
+    """Convert a collection of raw documents to a document id matrix.  
     """
-
-    def __init__(self, lower=True, num_norm=True,
-                 use_char=True, initial_vocab=None):
-        """Create a preprocessor object.
-
-        Args:
-            lower: boolean. Whether to convert the texts to lowercase.
-            use_char: boolean. Whether to use char feature.
-            num_norm: boolean. Whether to normalize text.
-            initial_vocab: Iterable. Initial vocabulary for expanding word_vocab.
-        """
-        self._num_norm = num_norm
-        self._use_char = use_char
-
+    
     def fit(self, vectors, labels2idx, chars2idx):
         """Learn vocabulary from training set.
 
@@ -95,7 +74,7 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
         # Pad all the sequences to equal length.
         # The padding value is #n_words so that the padding value does not match
         # any of the proper word ids
-        word_ids = pad_sequences(sequences=word_ids, padding="post", value=n_words)
+        word_ids = pad_sequences(sequences=word_ids, padding="post", value=self._word_vocab['<pad>'])
 
         # Convert every character of every word in each sentence into an integer id
         char_ids = [[[self.get_char_id(ch) for ch in w] for w in doc] for doc in X]
@@ -106,7 +85,6 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
         features = [word_ids, char_ids]
 
         if y is not None:
-
             # Convert every label into an integer id
             y = [[self._label_vocab[label] for label in doc] for doc in y]
             # Pad all the sequences so they match the padded word arrays

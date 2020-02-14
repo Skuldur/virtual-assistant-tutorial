@@ -1,127 +1,46 @@
 # -*- coding: utf-8 -*-
-import json
 from os import path
-import io
 import argparse
+
 import numpy
-import json
 from keras.preprocessing.sequence import pad_sequences
-from layers import CRF
-from sequences import TrainSequence
+
+from datautils import Dataset, Vocabulary, DataSequence
 from preprocessing import IndexTransformer, pad_nested_sequences
 from model import BiLSTMCRF
 
-def get_word_id(vocab, word):
-    if word in vocab:
-        return vocab[word]
-    return vocab['<unk>']
 
-def get_char_id(vocab, char):
-    if char in vocab:
-        return vocab[char]
-    return vocab['<unk>']
+class Trainer():
+    def __init__(self, model, X, y, split):
+        self.model = model
+        self.x_train, self.x_val, self.x_test = numpy.split(X, [int(len(X)*split[0]), int(len(X)*split[1])])
+        self.y_train, self.y_val, self.y_test = numpy.split(y, [int(len(X)*split[0]), int(len(X)*split[1])])
 
-class IntentTrainer():
+    def train(self, batch_size, preprocessor):
+        train_seq = DataSequence(self.x_train, self.y_train, batch_size, preprocessor.transform)
+        val_seq = DataSequence(self.x_val, self.y_val, batch_size, preprocessor.transform)
 
-    def __init__(self, schema_path, name, lang='en'):
-        """ Gets the schema for the new intent passed in and parses it """
-        self.schema_path = schema_path
-        self.name = name
-        self.vocab = set()
-        self.vocab.add("<unk>")
+        self.model.build()
+        self.model.compile()
+        self.model.train(train_seq, val_seq)
 
-    def save_data(self, example_commands, labels, vocab_map, char_map):
-        data_path = path.join(path.dirname(path.realpath(__file__)), 'data', '%s.json' % self.name)
-        with open(data_path, 'w', encoding='utf-8') as fp:
-            json.dump(example_commands, fp, ensure_ascii=False)
+    def save(self, name):
+        weights_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "weights", '%s.hdf5' % name)
+        self.model.save_weights(weights_path)
 
-        label_path = path.join(path.dirname(path.realpath(__file__)), "intents",  "config", "labels", "%s_labels.json" % self.name)
-        with open(label_path, 'w', encoding='utf-8') as fp:
-            json.dump(labels, fp, ensure_ascii=False)
-
-        word_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "vocab", "%s_word_vocab.json" % self.name)
-        with open(word_path, 'w', encoding='utf-8') as fp:
-            json.dump(vocab_map, fp, ensure_ascii=False)
-
-        char_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "vocab", "%s_char_vocab.json" % self.name)
-        with open(char_path, 'w', encoding='utf-8') as fp:
-            json.dump(char_map, fp, ensure_ascii=False)
-
-    def add_to_vocab(self, word):
-        self.vocab.add(word)
-
-    def get_data(self):
-        with open(self.schema_path) as f:
-            data = json.load(f)
-
-        return data['labels'], data['training_data']
-
-    def build_vocabulary(self, X):
-        for command in X:
-            for word in command:
-                self.add_to_vocab(word)
-
-    def train(self):
-
-        labels, data = self.get_data()
-
-        X = [x['words'] for x in data]
-        Y = [x['labels'] for x in data]
-
-        self.build_vocabulary(X)
-
-        n_words = len(self.vocab)
-
-        vocab = sorted(list(self.vocab))
-
-        vocab_map = dict((word, number) for number, word in enumerate(vocab))
-
-        #char embedding
-        chars = sorted(list(set([w_i for w in vocab for w_i in w])))
-        n_chars = len(chars)
-
-        char2idx = {c: i + 2 for i, c in enumerate(chars)}
-        char2idx["<unk>"] = 1
-        char2idx["<pad>"] = 0
-
-        labels2idx = dict((label, number) for number, label in enumerate(labels))
-
-        self.save_data(X[:300], labels, vocab_map, char2idx)
-
-        x_train, x_val, x_test = numpy.split(X, [int(len(X)*0.75), int(len(X)*0.95)])
-        y_train, y_val, y_test = numpy.split(Y, [int(len(X)*0.75), int(len(X)*0.95)])
-        batch_size = 64
-
-        preprocessor = IndexTransformer()
-        preprocessor.fit(vocab_map, labels2idx, char2idx)
-
-        train_seq = TrainSequence(x_train, y_train, batch_size, preprocessor.transform)
-        val_seq = TrainSequence(x_val, y_val, batch_size, preprocessor.transform)
-
-        model = BiLSTMCRF(labels, n_words, n_chars)
-        model.build()
-        model.compile()
-        model.train(train_seq, val_seq)
-
-        weights_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "weights", '%s.hdf5' % self.name)
-        model.model.save_weights(weights_path)
-
-        vocab_map = dict((word, number) for number, word in enumerate(vocab))
-
-        idx2label = dict((number, label) for number, label in enumerate(labels))
-
-        sentences = x_test
+    def evaluate(self, word2idx, char2idx, idx2label):
+        sentences = self.x_test
 
         wrong = 0
 
-        for sentence, true_labels in zip(sentences, y_test):
+        for sentence, true_labels in zip(sentences, self.y_test):
             words = [w for w in sentence]
-            word_id_array = [[get_word_id(vocab_map, w) for w in sentence]]
-            word_id_array = pad_sequences(sequences=word_id_array, padding="post", value=n_words)
+            word_id_array = [[word2idx.get(w, word2idx['<unk>']) for w in sentence]]
+            word_id_array = pad_sequences(sequences=word_id_array, padding="post", value=word2idx['<pad>'])
             
-            char_ids = [[[get_char_id(char2idx, ch) for ch in w] for w in sentence]]
+            char_ids = [[[char2idx.get(ch, char2idx['<unk>']) for ch in w] for w in sentence]]
             char_ids = pad_nested_sequences(char_ids)
-            p = model.predict([numpy.array(word_id_array), numpy.array(char_ids)])
+            p = self.model.predict([numpy.array(word_id_array), numpy.array(char_ids)])
 
             predicted_labels = []
             for pred in p[0]:
@@ -130,8 +49,52 @@ class IntentTrainer():
             if predicted_labels != true_labels:
                 wrong += 1
 
-        percentage = 100*(1.0*(len(sentences)-wrong) / len(sentences))
+        percentage = 100*((len(sentences)-wrong) / len(sentences))
         print("Testset accuracy is %s percent" % percentage)
+
+
+class IntentTrainer():
+
+    def __init__(self, schema_path, name, lang='en'):
+        """ Gets the schema for the new intent passed in and parses it """
+        self.schema_path = schema_path
+        self.name = name
+        
+
+    def train(self):
+        dataset = Dataset(self.schema_path, self.name)
+        labels, data = dataset.get_data()
+
+        X = [x['words'] for x in data]
+        y = [x['labels'] for x in data]
+
+        word_vocab = Vocabulary()
+        char_vocab = Vocabulary()
+
+        word_vocab.build_vocabulary(X)
+        word_vocab.add('<pad>')
+        word_vocab.create_map()
+
+        #char embedding
+        char_vocab.build_vocabulary([ch for w in word_vocab.vocab for ch in w])
+        char_vocab.add('<pad>')
+        char_vocab.create_map()
+        
+        labels2idx = dict((label, number) for number, label in enumerate(labels))
+        idx2label = dict((number, label) for number, label in enumerate(labels))
+
+        dataset.save(X[:300], labels, word_vocab, char_vocab)
+        model = BiLSTMCRF(labels, len(word_vocab), len(char_vocab))
+
+        trainer = Trainer(model, X, y, [0.75, 0.95])
+
+        batch_size = 64
+        preprocessor = IndexTransformer()
+        preprocessor.fit(word_vocab, labels2idx, char_vocab)
+
+        trainer.train(batch_size, preprocessor)
+        trainer.save(self.name)
+        trainer.evaluate(word_vocab, char_vocab, idx2label)
 
 
 parser = argparse.ArgumentParser(description='Train a new intent')

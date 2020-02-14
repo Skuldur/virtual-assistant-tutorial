@@ -2,14 +2,10 @@ import numpy
 
 from keras.layers import Dense, CuDNNLSTM, LSTM, concatenate, SpatialDropout1D, Bidirectional, Embedding, Input, Dropout, TimeDistributed, GlobalAveragePooling1D
 from keras.layers.merge import Concatenate
-from keras.models import Model, model_from_json
-from keras.preprocessing.sequence import pad_sequences
-from keras.utils.np_utils import to_categorical
-from scipy import misc
-from voiceassistant.layers import CRF
-from voiceassistant.sequences import TrainSequence
-from voiceassistant.preprocessing import IndexTransformer
+from keras.models import Model
+from layers import CRF
 from keras.callbacks import ModelCheckpoint
+
 
 class BiLSTMCRF():
 
@@ -38,7 +34,7 @@ class BiLSTMCRF():
                                recurrent_dropout=0.6))(x)
 
 
-        fully_conn = Timedistributed(Dense(self.n_labels, activation="relu"))(bi_lstm)  # softmax output layer
+        fully_conn = TimeDistributed(Dense(self.n_labels, activation="relu"))(bi_lstm)  # softmax output layer
 
         crf = CRF(self.n_labels, sparse_target=False)
         loss = crf.loss_function
@@ -71,6 +67,7 @@ class BiLSTMCRF():
         p = numpy.argmax(p, axis=-1)
 
         return p
+
 
 class TextClassification():
 
