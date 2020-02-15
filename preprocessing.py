@@ -21,22 +21,18 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-Preprocessors.
 """
 import re
 
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.externals import joblib
 from keras.utils.np_utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
 
-class IndexTransformer(BaseEstimator, TransformerMixin):
+class Preprocessor:
     """Convert a collection of raw documents to a document id matrix.  
     """
     
-    def fit(self, vectors, labels2idx, chars2idx):
+    def __init__(self, word2idx, labels2idx, chars2idx):
         """Learn vocabulary from training set.
 
         Args:
@@ -46,10 +42,8 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
             self : IndexTransformer.
         """
         self._char_vocab = chars2idx
-        self._word_vocab = vectors
+        self._word_vocab = word2idx
         self._label_vocab = labels2idx
-
-        return self
 
     def transform(self, X, y=None):
         """Transform documents to document ids.
@@ -78,7 +72,7 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
         # Convert every character of every word in each sentence into an integer id
         char_ids = [[[self._char_vocab[ch] for ch in w] for w in doc] for doc in X]
         # Each word gets its own array so we need to pad those arrays so that 
-        # each word sequence is of the same length
+        # each character sequence is of the same length
         char_ids = pad_nested_sequences(char_ids)
 
         features = [word_ids, char_ids]
@@ -93,21 +87,6 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
             y = to_categorical(y, self.label_size).astype(int)
             return features, y
 
-    def fit_transform(self, X, y=None, **params):
-        """Learn vocabulary and return document id matrix.
-
-        This is equivalent to fit followed by transform.
-
-        Args:
-            X : iterable
-            an iterable which yields either str, unicode or file objects.
-
-        Returns:
-            list : document id matrix.
-            list: label id matrix.
-        """
-        return self.fit(X, y).transform(X, y)
-
     @property
     def word_vocab_size(self):
         return len(self._word_vocab)
@@ -119,15 +98,6 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
     @property
     def label_size(self):
         return len(self._label_vocab)
-
-    def save(self, file_path):
-        joblib.dump(self, file_path)
-
-    @classmethod
-    def load(cls, file_path):
-        p = joblib.load(file_path)
-
-        return p
 
 def pad_nested_sequences(sequences, dtype='float32'):
     """Pads nested sequences to the same length.

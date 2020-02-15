@@ -15,12 +15,12 @@ class Dataset():
             data = json.load(f)
 
         self.labels = data['labels']
-        self.training_data = data['training_data']
+        self.training_data = data['training_data'][:10000]
 
     def get_data(self):
         return self.labels, self.training_data 
 
-    def save(self, example_commands, labels, vocab_map, char_map):
+    def save(self, example_commands, labels):
         data_path = path.join(path.dirname(path.realpath(__file__)), 'data', '%s.json' % self.name)
         with open(data_path, 'w', encoding='utf-8') as fp:
             json.dump(example_commands, fp, ensure_ascii=False)
@@ -28,14 +28,6 @@ class Dataset():
         label_path = path.join(path.dirname(path.realpath(__file__)), "intents",  "config", "labels", "%s_labels.json" % self.name)
         with open(label_path, 'w', encoding='utf-8') as fp:
             json.dump(labels, fp, ensure_ascii=False)
-
-        word_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "vocab", "%s_word_vocab.json" % self.name)
-        with open(word_path, 'w', encoding='utf-8') as fp:
-            json.dump(vocab_map.get_map(), fp, ensure_ascii=False)
-
-        char_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "vocab", "%s_char_vocab.json" % self.name)
-        with open(char_path, 'w', encoding='utf-8') as fp:
-            json.dump(char_map.get_map(), fp, ensure_ascii=False)
 
 
 class Vocabulary():
@@ -66,6 +58,12 @@ class Vocabulary():
 
     def get(self, word):
         return self.map.get(word, self.map['<unk>'])
+
+    def save(self, name):
+        vocab_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "vocab", name)
+        with open(vocab_path, 'w', encoding='utf-8') as fp:
+            json.dump(self.map, fp, ensure_ascii=False)
+
 
     def __len__(self):
         return len(self.vocab)

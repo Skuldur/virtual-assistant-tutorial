@@ -8,7 +8,6 @@ from layers import CRF
 from keras.callbacks import ModelCheckpoint
 
 
-
 class BiLSTMCRF():
 
     def __init__(self, labels, n_words, n_chars=0, dropout=0.3):
@@ -20,29 +19,31 @@ class BiLSTMCRF():
     def build(self):
         # build word embedding
         word_in = Input(shape=(None,))
-        emb_word = Embedding(input_dim=self.n_words+1, output_dim=100)(word_in)
+        emb_word = Embedding(input_dim=self.n_words+1, output_dim=128)(word_in)
         
         char_in = Input(shape=(None, None,))
-        emb_char = TimeDistributed(Embedding(input_dim=self.n_chars + 2, output_dim=10,
+        emb_char = TimeDistributed(Embedding(input_dim=self.n_chars + 2, output_dim=16,
                          mask_zero=True))(char_in)
         # character LSTM to get word encodings by characters
-        char_enc = TimeDistributed(LSTM(units=20, return_sequences=False,
+        char_enc = TimeDistributed(LSTM(units=28, return_sequences=False,
                                         recurrent_dropout=0.5))(emb_char)
-
 
         x = concatenate([emb_word, char_enc])
         x = SpatialDropout1D(0.3)(x)
         bi_lstm = Bidirectional(LSTM(units=256, return_sequences=True,
-                               recurrent_dropout=0.6))(x)
+                               recurrent_dropout=0.3))(x)
+        bi_lstm = Bidirectional(LSTM(units=256, return_sequences=True,
+                       recurrent_dropout=0.3))(bi_lstm)
 
 
-        fully_conn = TimeDistributed(Dense(self.n_labels, activation="relu"))(bi_lstm)  # softmax output layer
+        fully_conn = TimeDistributed(Dense(self.n_labels, activation='relu'))(bi_lstm)  # softmax output layer
 
         crf = CRF(self.n_labels, sparse_target=False)
         loss = crf.loss_function
         pred = crf(fully_conn)
 
         self.model = Model(inputs=[word_in, char_in], outputs=pred)
+
         self.loss = loss
         self.accuracy = crf.accuracy
 
@@ -62,7 +63,12 @@ class BiLSTMCRF():
         self.model.load_weights(weights_path)
 
     def save_weights(self, name):
-        weights_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "weights", '%s.hdf5' % name)
+        weights_path = path.join(
+            path.dirname(path.realpath(__file__)), 
+            'intents', 
+            'config', 
+            'weights', 
+            '%s.hdf5' % name)
         self.model.save_weights(name)
 
     def predict(self, input):
@@ -85,8 +91,8 @@ class TextClassification():
         model = Embedding(input_dim=self.n_words+1, output_dim=50)(input)
         #model = Dropout(self.dropout)(model)
         model = GlobalAveragePooling1D()(model)
-        out = Dense(256, activation="relu")(model)  # softmax output layer
-        out = Dense(self.n_labels, activation="softmax")(model)  # softmax output layer
+        out = Dense(256, activation='relu')(model)  # softmax output layer
+        out = Dense(self.n_labels, activation='softmax')(model)  # softmax output layer
 
         self.model = Model(inputs=input, outputs=out)
 
