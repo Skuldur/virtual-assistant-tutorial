@@ -11,14 +11,18 @@ class Trainer():
         self.y_train, self.y_val, self.y_test = numpy.split(y, [int(len(X)*split[0]), int(len(X)*split[1])])
 
     def train(self, batch_size, preprocessor):
-        train_seq = DataSequence(self.x_train, self.y_train, batch_size, preprocessor.transform)
-        val_seq = DataSequence(self.x_val, self.y_val, batch_size, preprocessor.transform)
+        """ Trains the model using the training and validation datasets
+        """
+        train_seq = DataSequence(self.x_train, self.y_train, batch_size, preprocessor)
+        val_seq = DataSequence(self.x_val, self.y_val, batch_size, preprocessor)
 
         self.model.build()
         self.model.compile()
         self.model.train(train_seq, val_seq)
 
     def evaluate(self, word2idx, char2idx, idx2label):
+        """ Evaluates the model on the test dataset
+        """
         wrong = 0
         for sentence, true_labels in zip(self.x_test, self.y_test):
             word_id_array = [[word2idx[w] for w in sentence]]

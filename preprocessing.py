@@ -33,27 +33,15 @@ class Preprocessor:
     """
     
     def __init__(self, word2idx, labels2idx, chars2idx):
-        """Learn vocabulary from training set.
-
-        Args:
-            X : iterable. An iterable which yields either str, unicode or file objects.
-
-        Returns:
-            self : IndexTransformer.
-        """
         self._char_vocab = chars2idx
         self._word_vocab = word2idx
         self._label_vocab = labels2idx
 
     def transform(self, X, y=None):
-        """Transform documents to document ids.
-
-        Uses the vocabulary learned by fit.
-
+        """
         Args:
-            X : iterable
-            an iterable which yields either str, unicode or file objects.
-            y : iterabl, label strings.
+            X : Input of the model, each row is a sequence of words
+            y : Target output labels, each row is a sequence of labels
 
         Returns:
             features: document id matrix.
@@ -109,7 +97,7 @@ def pad_nested_sequences(sequences, dtype='float32'):
         sequences: List of lists of lists.
         dtype: Type of the output sequences.
 
-    # Returns
+    Returns
         x: Numpy array.
     """
     max_sent_len = 0

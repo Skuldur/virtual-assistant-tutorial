@@ -15,7 +15,7 @@ class Dataset():
             data = json.load(f)
 
         self.labels = data['labels']
-        self.training_data = data['training_data'][:10000]
+        self.training_data = data['training_data']
 
     def get_data(self):
         return self.labels, self.training_data 
@@ -32,47 +32,46 @@ class Dataset():
 
 class Vocabulary():
     def __init__(self):
-        self.vocab = set()
-        self.vocab.add('<pad>')
-        self.vocab.add('<unk>')
-        self.map = None
-        self._create_map()
+        self.vocab = {}
+        self.length = 0
+        self.add('<pad>')
+        self.add('<unk>')
 
     def add(self, word):
-        self.vocab.add(word)
-        self._create_map()
+        if not word in self.vocab:
+            self.vocab[word] = self.length
+            self.length += 1
 
-    def build_vocab(self, X):
-        for command in X:
-            for word in command:
-                self.vocab.add(word)
+    def build_vocab(self, items):
+        for item in items:
+            self.add(item)
 
-        self._create_map()
-
-    def _create_map(self):
-        l = sorted(list(self.vocab))
-        self.map = {word: number for number, word in enumerate(l)}
-
-    def get_map(self):
-        return self.map
-
-    def get(self, word):
-        return self.map.get(word, self.map['<unk>'])
+    def get(self, item):
+        return self.vocab.get(item, self.vocab['<unk>'])
 
     def save(self, name):
-        vocab_path = path.join(path.dirname(path.realpath(__file__)), "intents", "config", "vocab", name)
+        vocab_path = path.join(
+            path.dirname(path.realpath(__file__)), 
+            "intents", 
+            "config", 
+            "vocab", 
+            name
+        )
         with open(vocab_path, 'w', encoding='utf-8') as fp:
-            json.dump(self.map, fp, ensure_ascii=False)
-
+            json.dump(self.vocab, fp, ensure_ascii=False)
 
     def __len__(self):
         return len(self.vocab)
 
-    def __getitem__(self, word):
-        return self.get(word)
+    def __getitem__(self, item):
+        return self.get(item)
 
-    def __contains__(self, word):
-        return word in self.vocab
+    def __contains__(self, item):
+        return item in self.vocab
+
+    def __iter__(self):
+        for w in self.vocab:
+            yield w
 
 
 class DataSequence(Sequence):
