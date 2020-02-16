@@ -8,12 +8,16 @@ from model import BiLSTMCRF
 
 
 parser = argparse.ArgumentParser(description='Train a new intent')
-parser.add_argument('schema_file', type=str,
+parser.add_argument('--schema_file', type=str,
                     help='The path to the intent schema')
-parser.add_argument('name', type=str,
+parser.add_argument('--name', type=str,
                     help='The path to the intent schema')
+parser.add_argument('--sample_size', type=int,
+                    help='The path to the intent schema', default=300)
+parser.add_argument('--batch_size', type=int,
+                    help='The path to the intent schema', default=64)
 
-def run(schema_path, name):
+def run(schema_path, name, sample_size, batch_size):
     dataset = Dataset(schema_path, name)
     labels, data = dataset.get_data()
 
@@ -34,18 +38,20 @@ def run(schema_path, name):
     model = BiLSTMCRF(labels, len(word_vocab), len(char_vocab))
     trainer = Trainer(model, X, y, [0.75, 0.95])
 
-    batch_size = 64
     trainer.train(batch_size, preprocessor.transform)
     trainer.evaluate(word_vocab, char_vocab, idx2label)
 
     model.save_weights(name)
-    dataset.save(X[:300], labels)
+    dataset.save(X[:sample_size], labels)
     word_vocab.save("%s_word_vocab.json" % name)
     char_vocab.save("%s_char_vocab.json" % name)
 
 if __name__ == '__main__':
-    #args = parser.parse_args()
-    #run(args.schema_file, args.name)
-    run('commands/play_commands.json', 'play')
+    args = parser.parse_args()
+    run(args.schema_file, 
+        args.name, 
+        args.sample_size,
+        args.batch_size
+    )
 
     

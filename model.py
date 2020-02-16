@@ -69,7 +69,7 @@ class BiLSTMCRF():
             'config', 
             'weights', 
             '%s.hdf5' % name)
-        self.model.save_weights(name)
+        self.model.save_weights(weights_path)
 
     def predict(self, input):
         p = self.model.predict(input)
