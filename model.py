@@ -48,7 +48,7 @@ class BiLSTMCRF():
         self.accuracy = crf.accuracy
 
     def compile(self):
-        self.model.compile(loss=self.loss, optimizer='rmsprop', metrics=[self.accuracy])
+        self.model.compile(loss=self.loss, optimizer='adam', metrics=[self.accuracy])
 
     def train(self, train_seq, test_seq):
         self.model.fit_generator(
