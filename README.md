@@ -1,4 +1,4 @@
-# basic-virtual-assistant
+# Basic Virtual Assistant
 
 Basic Virtual Assistant is the accompanying Github repository for my blog series "Making Your Own Alexa". The code in this repository can be used as a basis for a virtual assistant project.
 
