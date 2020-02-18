@@ -9,51 +9,53 @@ from keras.callbacks import ModelCheckpoint
 
 
 class BiLSTMCRF():
+    """An implementation of a Bidirectional LSTM with CRF model.
+    """
 
-    def __init__(self, labels, n_words, n_chars=0, dropout=0.3):
+    def __init__(self, labels, n_words, n_chars):
         self.n_labels = len(labels)
         self.n_words = n_words
-        self.dropout = dropout
         self.n_chars = n_chars
 
-    def build(self):
-        # build word embedding
+        #Word embedding
         word_in = Input(shape=(None,))
-        emb_word = Embedding(input_dim=self.n_words+1, output_dim=128)(word_in)
+        word_emb = Embedding(input_dim=self.n_words+1, output_dim=128)(word_in)
         
+        #Character embedding
         char_in = Input(shape=(None, None,))
-        emb_char = TimeDistributed(Embedding(input_dim=self.n_chars + 2, output_dim=16,
+        char_emb = TimeDistributed(Embedding(input_dim=self.n_chars + 2, output_dim=16,
                          mask_zero=True))(char_in)
+
         # character LSTM to get word encodings by characters
         char_enc = TimeDistributed(LSTM(units=28, return_sequences=False,
-                                        recurrent_dropout=0.5))(emb_char)
+                                        recurrent_dropout=0.5))(char_emb)
 
-        x = concatenate([emb_word, char_enc])
-        x = SpatialDropout1D(0.3)(x)
-        bi_lstm = Bidirectional(LSTM(units=256, return_sequences=True,
-                               recurrent_dropout=0.3))(x)
-        bi_lstm = Bidirectional(LSTM(units=256, return_sequences=True,
-                       recurrent_dropout=0.3))(bi_lstm)
+        concat = concatenate([word_emb, char_enc])
+        bi_lstm = SpatialDropout1D(0.3)(concat)
 
+        for i in range(2):
+            bi_lstm = Bidirectional(
+                LSTM(
+                    units=256, 
+                    return_sequences=True,
+                    recurrent_dropout=0.3
+                )
+            )(bi_lstm)
 
-        fully_conn = TimeDistributed(Dense(self.n_labels, activation='relu'))(bi_lstm)  # softmax output layer
+        linear = TimeDistributed(Dense(self.n_labels, activation='relu'))(bi_lstm)  # softmax output layer
 
         crf = CRF(self.n_labels, sparse_target=False)
-        loss = crf.loss_function
-        pred = crf(fully_conn)
+        pred = crf(linear)
 
         self.model = Model(inputs=[word_in, char_in], outputs=pred)
-
-        self.loss = loss
+        self.loss = crf.loss_function
         self.accuracy = crf.accuracy
-
-    def compile(self):
         self.model.compile(loss=self.loss, optimizer='adam', metrics=[self.accuracy])
 
-    def train(self, train_seq, test_seq):
+    def train(self, train_seq, test_seq, epochs):
         self.model.fit_generator(
             generator=train_seq,
-            epochs=10,
+            epochs=epochs,
             verbose=1,
             shuffle=True,
             validation_data=test_seq,
@@ -75,4 +77,4 @@ class BiLSTMCRF():
         p = self.model.predict(input)
         p = numpy.argmax(p, axis=-1)
 
-        return p
+        return p[0]

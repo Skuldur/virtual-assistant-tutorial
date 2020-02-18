@@ -6,6 +6,9 @@ import numpy as np
 from keras.utils import Sequence
 
 
+CONFIG_PATH = path.join(path.dirname(path.realpath(__file__)), "intents", "config")
+
+
 class Dataset():
     def __init__(self, schema_path, name):
         self.path = schema_path
@@ -25,7 +28,7 @@ class Dataset():
         with open(data_path, 'w', encoding='utf-8') as fp:
             json.dump(example_commands, fp, ensure_ascii=False)
 
-        label_path = path.join(path.dirname(path.realpath(__file__)), "intents",  "config", "labels", "%s_labels.json" % self.name)
+        label_path = path.join(CONFIG_PATH, "labels", "%s_labels.json" % self.name)
         with open(label_path, 'w', encoding='utf-8') as fp:
             json.dump(labels, fp, ensure_ascii=False)
 
@@ -47,18 +50,21 @@ class Vocabulary():
             self.add(item)
 
     def get(self, item):
+        """Gets the integer ID of the item if it exists in the vocabulary,
+        Otherwise it gets the ID of the unknown token
+        """
         return self.vocab.get(item, self.vocab['<unk>'])
 
     def save(self, name):
-        vocab_path = path.join(
-            path.dirname(path.realpath(__file__)), 
-            "intents", 
-            "config", 
-            "vocab", 
-            name
-        )
+        vocab_path = path.join(CONFIG_PATH, "vocab", name)
         with open(vocab_path, 'w', encoding='utf-8') as fp:
             json.dump(self.vocab, fp, ensure_ascii=False)
+
+    def load(self, name):
+        vocab_path = path.join(CONFIG_PATH, "vocab", name)
+        with open(vocab_path, encoding="utf8") as f:
+            self.vocab = json.load(f)
+            self.length = len(self.vocab)
 
     def __len__(self):
         return len(self.vocab)
@@ -82,6 +88,8 @@ class DataSequence(Sequence):
         self.preprocess = preprocess
 
     def __getitem__(self, idx):
+        """Generates the next batch for the model and returns the preprocessed data
+        """
         batch_x = self.x[idx * self.batch_size: (idx + 1) * self.batch_size]
         batch_y = self.y[idx * self.batch_size: (idx + 1) * self.batch_size]
 

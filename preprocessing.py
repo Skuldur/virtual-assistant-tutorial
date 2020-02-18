@@ -74,6 +74,7 @@ class Preprocessor:
             # One-hot encode all the sequences
             y = to_categorical(y, self.label_size).astype(int)
             return features, y
+        return features
 
     @property
     def word_vocab_size(self):
