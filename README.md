@@ -10,17 +10,24 @@ Part 1: <LINK TO PART 1>
 pip install -r requirements.txt
 ```
 
+NLTK will require you to download a data for its tokenizer so open Python in your terminal and run the following code
+
+```
+import nltk
+nltk.download('punkt')
+```
+
 ## Usage
 
 The intent_trainer module contains a CLI for training new intents. It has a few conditional options that can be used:
 
-* *task* is the task you want to run (`train` or `predict`)
-* *--schema_file* is the path to the training data you want to use. E.g. `commands/play_commands.json`.
-* *--name* is the name of the intent that you're training.
-* *--sample_size* is the amount of rows that should be saved so that they can used to train the intent classification model.
-* *--batch_size* is the size of the mini-batches.
-* *--epochs* is the number of epochs the model should train for
-* *--command* is the command you want to predict the labels of
+* `task` is the task you want to run (`train` or `predict`).
+* `--schema_file` is the path to the training data you want to use. E.g. `commands/play_commands.json`.
+* `--name` is the name of the intent that you're training.
+* `--sample_size` is the amount of rows that should be saved so that they can used to train the intent classification model.
+* `--batch_size` is the size of the mini-batches.
+* `--epochs` is the number of epochs the model should train for.
+* `--command` is the command you want to predict the labels for.
 
 Below is an example on how you can train an Named Entity Recognition model for the Play command.
 
