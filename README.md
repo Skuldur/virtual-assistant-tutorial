@@ -2,7 +2,7 @@
 
 Basic Virtual Assistant is the accompanying Github repository for my blog series "Making Your Own Alexa". The code in this repository can be used as a basis for a virtual assistant project.
 
-Part 1: <LINK TO PART 1>
+Part 1: https://towardsdatascience.com/making-your-own-alexa-entity-extraction-8c7f23eb65a
 
 ## Getting Started
 
